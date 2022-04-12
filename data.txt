@@ -1,0 +1,2 @@
+"1" "C:\Users\18134\AppData\Local\Google\Chrome\Application\chrome.exe" "E:\Qt5.14.2\Projects\build-DBClickForChrome-Desktop_Qt_5_14_2_MinGW_64_bit-Release\release\DBClickForChrome.exe" "1" "1"
+"1" "D:\Program Files (x86)\Tencent\QQ\Bin\QQ.exe" "E:\Qt5.14.2\Projects\build-QQ_Helper-Desktop_Qt_5_14_2_MinGW_64_bit-Release\release\QQ Follower.exe" "0" "1"
