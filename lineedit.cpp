@@ -4,16 +4,29 @@
 #include <QDragEnterEvent>
 #include <QMimeData>
 #include <windows.h>
+#include <QCursor>
+#include <QCompleter>
+#include <QDirModel>
+#include <QTimer>
 LineEdit::LineEdit(QWidget* parent) //ui->setupUi(this)会setText(QString()) 所以在构造函数中setText无效
     : QLineEdit(parent)
 {
+    setCompleter(new QCompleter(new QDirModel(this), this));
+
     connect(this, &LineEdit::editingFinished, [=]() {
-        setPath(text());
-        setEdit(false);
+        if (isEdit) { //防止非编辑状态下 回车 导致path = fileName
+            QTimer::singleShot(0, [=]() { //防止completer在editingFinished后setText
+                setPath(text());
+                setEdit(false);
+            });
+        }
     });
 
     defaultIcon = iconPro.icon(QFileIconProvider::File);
     act_icon = addAction(defaultIcon, ActionPosition::LeadingPosition);
+    connect(act_icon, &QAction::triggered, [=]() { //点击ICON打开文件夹
+        ShellExecuteW(NULL, L"open", L"explorer", QString("/select, \"%1\"").arg(QDir::toNativeSeparators(path)).toStdWString().c_str(), NULL, SW_SHOW);
+    });
 
     setPlaceholderText("Null");
 
