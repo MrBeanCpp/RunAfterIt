@@ -24,7 +24,14 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
     setWindowTitle("RunAfterIt by MrBeanC");
     ui->label_title->setText("RunAfterIt by MrBeanC");
     lw = ui->listWidget;
+
+    lw->setDragDropMode(QAbstractItemView::InternalMove);
+    lw->setDefaultDropAction(Qt::MoveAction);
     lw->setSelectionMode(QAbstractItemView::SingleSelection);
+    lw->viewport()->setAcceptDrops(true); //支持拖拽 在设计师界面修改貌似无效
+
+    lw->viewport()->installEventFilter(this);
+
     setAcceptDrops(true);
 
     initSysTray();
@@ -96,9 +103,7 @@ void Widget::addItem(const ItemInfo& info)
 
     connect(item, &Item::contentChanged, [=]() {
         qDebug() << "#Changed" << QTime::currentTime();
-        QtConcurrent::run([=]() {
-            writeFile();
-        });
+        asyncSave();
     });
 
     connect(item, &Item::deleteButtonClicked, [=](QListWidgetItem* widgetItem) {
@@ -106,9 +111,7 @@ void Widget::addItem(const ItemInfo& info)
         int row = lw->row(widgetItem); //获取当前鼠标所选行
         delete lw->takeItem(row); //删除该行
         qDebug() << "#Delete";
-        QtConcurrent::run([=]() {
-            writeFile();
-        });
+        asyncSave();
     });
 }
 
@@ -175,6 +178,13 @@ void Widget::readFile()
         file.close();
         updateList();
     }
+}
+
+void Widget::asyncSave()
+{
+    QtConcurrent::run([=]() {
+        writeFile();
+    });
 }
 
 Widget::InfoList Widget::getInfoList()
@@ -365,4 +375,13 @@ void Widget::dropEvent(QDropEvent* event)
 {
     QString path = event->mimeData()->urls().at(0).toLocalFile();
     addItem(ItemInfo(true, QDir::toNativeSeparators(path), ""));
+}
+
+bool Widget::eventFilter(QObject* watched, QEvent* event)
+{
+    if (watched == lw->viewport() && event->type() == QEvent::Drop) {
+        qDebug() << "drop";
+        asyncSave();
+    }
+    return false;
 }

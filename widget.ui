@@ -261,56 +261,25 @@ QPushButton:hover{
       <item>
        <widget class="QListWidget" name="listWidget">
         <property name="styleSheet">
-         <string notr="true">font: 9pt &quot;微软雅黑&quot;;
-/*ScrollBar
-QScrollBar:vertical
-{
-    width:8px;
-    background:rgba(0,0,0,0%);
-    margin:0px,0px,0px,0px;
-    padding-top:0px; 
-    padding-bottom:0px;
-}
-QScrollBar::handle:vertical
-{
-    width:8px;
-    background:rgba(0,0,0,25%);
-    border-radius:4px;
-    min-height:20;
-}
-QScrollBar::handle:vertical:hover
-{
-    width:8px;
-    background:rgba(0,0,0,50%);
-    border-radius:4px;
-    min-height:20;
-}
-
-QScrollBar::add-line:vertical
-{
-    height:0px;width:8px;
-    subcontrol-position:bottom;
-}
-QScrollBar::sub-line:vertical
-{
-    height:0px;width:8px;
-    subcontrol-position:top;
-}
-QScrollBar::add-line:vertical:hover 
-{
-    height:9px;width:8px;
-    subcontrol-position:bottom;
-}
-QScrollBar::sub-line:vertical:hover
-{
-    height:9px;width:8px;
-    subcontrol-position:top;
-}
-QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical
-{
-    background:rgba(0,0,0,10%);
-    border-radius:4px;
-}*/</string>
+         <string notr="true">font: 9pt &quot;微软雅黑&quot;;</string>
+        </property>
+        <property name="horizontalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
+        <property name="dragEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="dragDropMode">
+         <enum>QAbstractItemView::DragDrop</enum>
+        </property>
+        <property name="defaultDropAction">
+         <enum>Qt::MoveAction</enum>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>true</bool>
+        </property>
+        <property name="movement">
+         <enum>QListView::Static</enum>
         </property>
        </widget>
       </item>

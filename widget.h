@@ -29,6 +29,7 @@ public:
     Item* getItemWidget(int row);
     void writeFile(void);
     void readFile(void);
+    void asyncSave(void);
     InfoList getInfoList(void);
     void updateList(void);
     ProcessList enumProcess(void);
@@ -65,6 +66,10 @@ protected:
 protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
     void dropEvent(QDropEvent* event) override;
+
+    // QObject interface
+public:
+    bool eventFilter(QObject* watched, QEvent* event) override;
 };
 #endif // WIDGET_H
 
