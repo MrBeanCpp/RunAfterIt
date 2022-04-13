@@ -83,8 +83,9 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
     });
     timer->start(2000);
 
-    sysTray->showMessage("Message", "RunAfterIt Started");
     readFile();
+    readIni();
+    sysTray->showMessage("Message", "RunAfterIt Started");
 }
 
 Widget::~Widget()
@@ -185,6 +186,22 @@ void Widget::asyncSave()
     QtConcurrent::run([=]() {
         writeFile();
     });
+}
+
+void Widget::writeIni()
+{
+    qDebug() << "#writeIni";
+    QSettings iniSet(iniPath, QSettings::IniFormat);
+    iniSet.setValue("Size", size());
+}
+
+void Widget::readIni()
+{
+    qDebug() << "#readIni";
+    QSettings iniSet(iniPath, QSettings::IniFormat);
+    QVariant var = iniSet.value("Size");
+    if (var.isValid())
+        resize(var.toSize());
 }
 
 Widget::InfoList Widget::getInfoList()
@@ -317,6 +334,7 @@ void Widget::closeEvent(QCloseEvent* event)
 {
     hide();
     sysTray->showMessage("Message", "已隐藏到托盘");
+    writeIni();
     event->ignore();
 }
 

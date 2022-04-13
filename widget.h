@@ -30,6 +30,8 @@ public:
     void writeFile(void);
     void readFile(void);
     void asyncSave(void);
+    void writeIni(void);
+    void readIni(void);
     InfoList getInfoList(void);
     void updateList(void);
     ProcessList enumProcess(void);
@@ -45,7 +47,8 @@ private:
     Ui::Widget* ui;
 
     QListWidget* lw = nullptr;
-    const QString filePath = R"(E:\Qt5.14.2\Projects\RunAfterIt\data.txt)";
+    const QString filePath = QApplication::applicationDirPath() + "/data.txt"; //R"(E:\Qt5.14.2\Projects\RunAfterIt\data.txt)";
+    const QString iniPath = QApplication::applicationDirPath() + "/settings.ini";
     const QString Reg_AutoRun = "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"; //HKEY_CURRENT_USER仅仅对当前用户有效，但不需要管理员权限
     const QString AppName = "RunAfterIt";
     const QString AppPath = QDir::toNativeSeparators(QApplication::applicationFilePath());
