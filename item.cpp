@@ -40,5 +40,10 @@ void Item::setData(const ItemInfo& info)
 
 ItemInfo Item::getData()
 {
-    return ItemInfo(ui->check_used->isChecked(), ui->edit_target->getPath(), ui->edit_follow->getPath(), ui->btn_endWith->isChecked(), ui->btn_loop->isChecked());
+    return ItemInfo(
+        ui->check_used->isChecked(),
+        ui->edit_target->getPath(),
+        ui->edit_follow->getPath(),
+        ui->btn_endWith->isChecked(),
+        ui->btn_loop->isChecked());
 }
