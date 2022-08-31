@@ -16,8 +16,7 @@
 #include <winbase.h> //必须在windows.h后
 #include <tlhelp32.h> //必须在windows.h后 否则报错（需要一些定义）
 Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or 只在启动瞬间）
-    : QWidget(parent)
-    , ui(new Ui::Widget)
+    : QWidget(parent), ui(new Ui::Widget)
 {
     ui->setupUi(this);
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowMinMaxButtonsHint); //否则nativeEvent拉伸窗体不响应
@@ -48,7 +47,10 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
         auto pList = enumProcess();
         auto pSet = enumProcessPath(pList);
         qDebug() << "Processes:" << pSet.size() << QTime::currentTime();
-        for (const auto& info : infoList) {
+
+        QSet<QString> livePathList; //应当存活的进程
+        QSet<QPair<DWORD, QString>> endList; //使用set存储再统一执行 防止启动和终止列表冲突
+        for (const auto& info : qAsConst(infoList)) {
             if (!info.isVaild()) { //not exist
                 qDebug() << "#Not Valid:" << info;
                 continue;
@@ -60,6 +62,9 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
             bool isTargetStart = !isTargetExisted && isTargetExist; //开启的瞬间 or 首次检测到存在(preSet.empty())
             bool isTargetEnd = isTargetExisted && !isTargetExist; //结束的瞬间
 
+            if (isTargetExist) //只要target存活 follow就应当存活（处理的是多个follow相同的情况 防止冲突 而被end）
+                livePathList << info.follow;
+
             if (isTargetExist && !isFollowExist) {
                 if (info.isLoop || isTargetStart) { //not loop 只在A的开启瞬间启动B 不会重复启动
                     QString target = getFileName(info.target);
@@ -67,18 +72,28 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
 
                     QDesktopServices::openUrl(QUrl::fromLocalFile(info.follow));
                     qDebug() << "#Detect:" << target << "then #Run:" << follow;
+                    livePathList << info.follow; //当然启动也算应当存活
                 }
             } else if (isTargetEnd && isFollowExist && info.isEndWith) {
-                for (const auto& P : pList) {
+                for (const auto& P : qAsConst(pList)) {
                     QString path = queryProcessName(P.first);
                     if (path == info.follow) {
-                        HANDLE Process = OpenProcess(PROCESS_TERMINATE, FALSE, P.first);
-                        bool ret = TerminateProcess(Process, 0);
-                        qDebug() << "#Terminate:" << path << ret;
+                        //                        HANDLE Process = OpenProcess(PROCESS_TERMINATE, FALSE, P.first);
+                        //                        bool ret = TerminateProcess(Process, 0);
+                        //                        qDebug() << "#Terminate:" << path << ret;
+                        endList << qMakePair(P.first, path); //PID + fullPath
                     }
                 }
             }
         }
+
+        for (auto P : qAsConst(endList))
+            if (!livePathList.contains(P.second)) { //确保与启动列表不冲突
+                HANDLE Process = OpenProcess(PROCESS_TERMINATE, FALSE, P.first);
+                bool ret = TerminateProcess(Process, 0);
+                qDebug() << "#Terminate:" << P.second << ret;
+            }
+
         preSet = pSet;
     });
     timer->start(2000);
