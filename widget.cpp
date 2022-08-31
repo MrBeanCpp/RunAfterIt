@@ -49,6 +49,7 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
         qDebug() << "Processes:" << pSet.size() << QTime::currentTime();
 
         QSet<QString> livePathList; //应当存活的进程
+        QSet<QString> startedPathList;
         QSet<QPair<DWORD, QString>> endList; //使用set存储再统一执行 防止启动和终止列表冲突
         for (const auto& info : qAsConst(infoList)) {
             if (!info.isVaild()) { //not exist
@@ -67,12 +68,15 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
 
             if (isTargetExist && !isFollowExist) {
                 if (info.isLoop || isTargetStart) { //not loop 只在A的开启瞬间启动B 不会重复启动
-                    QString target = getFileName(info.target);
-                    QString follow = getFileName(info.follow);
+                    if (!startedPathList.contains(info.follow)) { //防止重复启动 (when列表中有多个相同follow)
+                        QString target = getFileName(info.target);
+                        QString follow = getFileName(info.follow);
 
-                    QDesktopServices::openUrl(QUrl::fromLocalFile(info.follow));
-                    qDebug() << "#Detect:" << target << "then #Run:" << follow;
-                    livePathList << info.follow; //当然启动也算应当存活
+                        QDesktopServices::openUrl(QUrl::fromLocalFile(info.follow));
+                        qDebug() << "#Detect:" << target << "then #Run:" << follow;
+                        livePathList << info.follow; //当然启动也算应当存活
+                        startedPathList << info.follow;
+                    }
                 }
             } else if (isTargetEnd && isFollowExist && info.isEndWith) {
                 for (const auto& P : qAsConst(pList)) {
