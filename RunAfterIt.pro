@@ -42,4 +42,9 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     res.qrc
 
-DISTFILES +=
+msvc {
+    QMAKE_CFLAGS += /utf-8
+    QMAKE_CXXFLAGS += /utf-8
+}
+
+LIBS += -luser32
