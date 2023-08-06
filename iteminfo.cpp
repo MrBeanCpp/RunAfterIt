@@ -18,5 +18,10 @@ ItemInfo::ItemInfo(bool _isUsed, const QString& _target, const QString& _follow,
 
 bool ItemInfo::isVaild() const
 {
-    return isUsed && QFile::exists(target) && QFile::exists(follow);
+    return isUsed && (QFile::exists(target) || isWifi()) && QFile::exists(follow);
+}
+
+bool ItemInfo::isWifi() const
+{
+    return target.startsWith(WIFI);
 }

@@ -8,6 +8,7 @@
 #include <QCompleter>
 #include <QDirModel>
 #include <QTimer>
+#include "iteminfo.h"
 LineEdit::LineEdit(QWidget* parent) //ui->setupUi(this)会setText(QString()) 所以在构造函数中setText无效
     : QLineEdit(parent)
 {
@@ -15,7 +16,7 @@ LineEdit::LineEdit(QWidget* parent) //ui->setupUi(this)会setText(QString()) 所
 
     connect(this, &LineEdit::editingFinished, [=]() {
         if (isEdit) { //防止非编辑状态下 回车 导致path = fileName
-            QTimer::singleShot(0, [=]() { //防止completer在editingFinished后setText
+            QTimer::singleShot(0, this, [=]() { //防止completer在editingFinished后setText
                 setPath(text());
                 setEdit(false);
             });
@@ -24,7 +25,7 @@ LineEdit::LineEdit(QWidget* parent) //ui->setupUi(this)会setText(QString()) 所
 
     defaultIcon = iconPro.icon(QFileIconProvider::File);
     act_icon = addAction(defaultIcon, ActionPosition::LeadingPosition);
-    connect(act_icon, &QAction::triggered, [=]() { //点击ICON打开文件夹
+    connect(act_icon, &QAction::triggered, this, [=]() { //点击ICON打开文件夹
         ShellExecuteW(NULL, L"open", L"explorer", QString("/select, \"%1\"").arg(QDir::toNativeSeparators(path)).toStdWString().c_str(), NULL, SW_SHOW);
     });
 
@@ -52,6 +53,10 @@ void LineEdit::setPath(const QString& _path)
             this->fileName = info.baseName();
             setPlaceholderText("");
             act_icon->setIcon(iconPro.icon(info));
+        } else if(_path.startsWith(ItemInfo::WIFI, Qt::CaseInsensitive)) { //wifi
+            this->fileName = _path.mid(ItemInfo::WIFI.length());
+            setPlaceholderText("");
+            act_icon->setIcon(QIcon(":/Images/wifi.ico"));
         } else {
             this->fileName = "";
             setPlaceholderText(_path.isEmpty() ? "Null" : "Wrong Path");
@@ -60,7 +65,7 @@ void LineEdit::setPath(const QString& _path)
         setText(fileName);
         setToolTip(_path);
 
-        emit pathChanged();
+        emit pathChanged(_path);
     }
 }
 

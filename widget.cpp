@@ -13,8 +13,10 @@
 #include <QWindowStateChangeEvent>
 #include <QDesktopServices>
 #include <QtConcurrent>
+#include <QMessageBox>
 #include <winbase.h> //必须在windows.h后
 #include <tlhelp32.h> //必须在windows.h后 否则报错（需要一些定义）
+#include "util.h"
 Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or 只在启动瞬间）
     : QWidget(parent), ui(new Ui::Widget)
 {
@@ -37,72 +39,78 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
 
     connect(ui->btn_min, &QPushButton::clicked, this, &Widget::showMinimized);
     connect(ui->btn_close, &QPushButton::clicked, this, &Widget::close);
-    connect(ui->btn_add, &QPushButton::clicked, [=]() {
+    connect(ui->btn_add, &QPushButton::clicked, this, [=]() {
         addItem();
+    });
+    connect(ui->btn_wifi, &QPushButton::clicked, this, [=]() {
+        addItem(ItemInfo(true, ItemInfo::WIFI + Util::getWifiName(), ""));
     });
 
     QTimer* timer = new QTimer(this);
     timer->callOnTimeout([=]() {
         static PathSet preSet;
+
+        QElapsedTimer t;
+        t.start();
         auto pList = enumProcess();
         auto pSet = enumProcessPath(pList);
-        qDebug() << "Processes:" << pSet.size() << QTime::currentTime();
+        qDebug() << "Processes:" << pSet.size() << QTime::currentTime() << "cost:" << t.elapsed() << "ms";
 
-        QSet<QString> livePathList; //应当存活的进程
+        QSet<QString> shouldLivePathList; //应当存活的进程
         QSet<QString> startedPathList;
-        QSet<QPair<DWORD, QString>> endList; //使用set存储再统一执行 防止启动和终止列表冲突
+        QSet<QPair<DWORD, QString>> toEndList; //使用set存储再统一执行 防止启动和终止列表冲突
         for (const auto& info : qAsConst(infoList)) {
             if (!info.isVaild()) { //not exist
-                qDebug() << "#Not Valid:" << info;
+                qDebug() << "#Not Valid:" << Util::getFileName(info.target) << Util::getFileName(info.follow);
                 continue;
             }
+            if(info.isWifi() && !isWifiConnecting) continue; //WIFI是连接时生效一次
 
-            bool isTargetExist = pSet.contains(info.target);
+            //触发条件
+            bool isTargetExist = info.isWifi() ? (info.target == (ItemInfo::WIFI + wifiName)) : pSet.contains(info.target);
             bool isTargetExisted = preSet.contains(info.target);
             bool isFollowExist = pSet.contains(info.follow);
             bool isTargetStart = !isTargetExisted && isTargetExist; //开启的瞬间 or 首次检测到存在(preSet.empty())
             bool isTargetEnd = isTargetExisted && !isTargetExist; //结束的瞬间
 
             if (isTargetExist) //只要target存活 follow就应当存活（处理的是多个follow相同的情况 防止冲突 而被end）
-                livePathList << info.follow;
+                shouldLivePathList << info.follow;
 
             if (isTargetExist && !isFollowExist) {
                 if (info.isLoop || isTargetStart) { //not loop 只在A的开启瞬间启动B 不会重复启动
                     if (!startedPathList.contains(info.follow)) { //防止重复启动 (when列表中有多个相同follow)
-                        QString target = getFileName(info.target);
-                        QString follow = getFileName(info.follow);
+                        QString target = info.isWifi() ? info.target : Util::getFileName(info.target);
+                        QString follow = Util::getFileName(info.follow);
 
-                        QDesktopServices::openUrl(QUrl::fromLocalFile(info.follow));
+                        Util::startProcess(info.follow);
                         qDebug() << "#Detect:" << target << "then #Run:" << follow;
-                        livePathList << info.follow; //当然启动也算应当存活
+                        shouldLivePathList << info.follow; //当然启动也算应当存活
                         startedPathList << info.follow;
                     }
                 }
             } else if (isTargetEnd && isFollowExist && info.isEndWith) {
                 for (const auto& P : qAsConst(pList)) {
                     QString path = queryProcessName(P.first);
-                    if (path == info.follow) {
-                        //                        HANDLE Process = OpenProcess(PROCESS_TERMINATE, FALSE, P.first);
-                        //                        bool ret = TerminateProcess(Process, 0);
-                        //                        qDebug() << "#Terminate:" << path << ret;
-                        endList << qMakePair(P.first, path); //PID + fullPath
-                    }
+                    if (path == info.follow)
+                        toEndList << qMakePair(P.first, path); //PID + fullPath
                 }
             }
         }
 
-        for (auto P : qAsConst(endList))
-            if (!livePathList.contains(P.second)) { //确保与启动列表不冲突
+        for (const auto& P : qAsConst(toEndList))
+            if (!shouldLivePathList.contains(P.second)) { //确保与启动列表不冲突
                 HANDLE Process = OpenProcess(PROCESS_TERMINATE, FALSE, P.first);
                 bool ret = TerminateProcess(Process, 0);
                 qDebug() << "#Terminate:" << P.second << ret;
             }
 
+        isWifiConnecting = false; //clear state
         preSet = pSet;
     });
     timer->start(2000);
 
-    readFile();
+    wlanStateRegister(WLANCallback);
+    readFile(); //todo: 如果包含wifi 则注册事件
     readIni();
     sysTray->showMessage("Message", "RunAfterIt Started");
 }
@@ -121,12 +129,12 @@ void Widget::addItem(const ItemInfo& info)
     lw->addItem(widgetItem);
     lw->setItemWidget(widgetItem, item);
 
-    connect(item, &Item::contentChanged, [=]() {
+    connect(item, &Item::contentChanged, this, [=]() {
         qDebug() << "#Changed" << QTime::currentTime();
         asyncSave();
     });
 
-    connect(item, &Item::deleteButtonClicked, [=](QListWidgetItem* widgetItem) {
+    connect(item, &Item::deleteButtonClicked, this, [=](QListWidgetItem* widgetItem) {
         lw->removeItemWidget(widgetItem);
         int row = lw->row(widgetItem); //获取当前鼠标所选行
         delete lw->takeItem(row); //删除该行
@@ -298,18 +306,13 @@ QString Widget::queryProcessName(DWORD PID)
     return sPath;
 }
 
-QString Widget::getFileName(const QString& path)
-{
-    return QFileInfo(path).fileName();
-}
-
 void Widget::initSysTray()
 {
     if (sysTray) return;
     sysTray = new QSystemTrayIcon(this);
     sysTray->setIcon(QIcon(":/Images/ICON_WC.ico"));
     sysTray->setToolTip("RunAfterIt");
-    connect(sysTray, &QSystemTrayIcon::activated, [=](QSystemTrayIcon::ActivationReason reason) {
+    connect(sysTray, &QSystemTrayIcon::activated, this, [=](QSystemTrayIcon::ActivationReason reason) {
         if (reason == QSystemTrayIcon::Trigger)
             showNormal(), activateWindow();
     });
@@ -322,7 +325,7 @@ void Widget::initSysTray()
     QAction* act_quit = new QAction("Quit>>", menu);
     act_autoStart->setCheckable(true);
     act_autoStart->setChecked(isAutoRun());
-    connect(act_autoStart, &QAction::toggled, [=](bool checked) {
+    connect(act_autoStart, &QAction::toggled, this, [=](bool checked) {
         setAutoRun(checked);
         sysTray->showMessage("Tip", checked ? "已添加启动项" : "已移除启动项");
     });
@@ -347,6 +350,49 @@ bool Widget::isAutoRun()
 {
     QSettings reg(Reg_AutoRun, QSettings::NativeFormat);
     return reg.value(AppName).toString() == AppPath;
+}
+
+void Widget::WLANCallback(PWLAN_NOTIFICATION_DATA wlanData, PVOID context)
+{
+    Q_UNUSED(context)
+    if (wlanData->NotificationCode == wlan_notification_acm_connection_complete) { //包括连接与断开
+        PWLAN_CONNECTION_NOTIFICATION_DATA connData = (PWLAN_CONNECTION_NOTIFICATION_DATA)wlanData->pData;
+        if (connData->wlanReasonCode != WLAN_REASON_CODE_SUCCESS) return; //区分连接与断开
+
+        qDebug() << "Connected";
+
+        PDOT11_SSID ssid = &(connData->dot11Ssid); // 转换SSID指针为SSID结构
+        ULONG ssidLength = ssid->uSSIDLength;
+        UCHAR* ssidValue = ssid->ucSSID;
+        QString wifiName = QString::fromUtf8((const char*)ssidValue, ssidLength);
+
+        qDebug() << wifiName;
+        isWifiConnecting = true;
+        Widget::wifiName = wifiName;
+    }
+}
+
+void Widget::wlanStateRegister(WLAN_NOTIFICATION_CALLBACK funcCallback)
+{
+    DWORD dwClientVersion = WLAN_API_MAKE_VERSION(2, 0);
+    DWORD dwNegotiatedVersion = 0;
+    HANDLE hClient = NULL;
+
+    // 打开与服务器的连接
+    DWORD dwResult = WlanOpenHandle(dwClientVersion, NULL, &dwNegotiatedVersion, &hClient);
+    if (dwResult != ERROR_SUCCESS) {
+        QMessageBox::critical(this, "Error", "WlanOpenHandle failed");
+        qApp->quit();
+    }
+
+    DWORD dwPrevNotif = WLAN_NOTIFICATION_SOURCE_ACM; // 注册通知源
+    WlanRegisterNotification(hClient, WLAN_NOTIFICATION_SOURCE_ALL, TRUE, funcCallback, NULL, NULL, &dwPrevNotif);
+
+    connect(qApp, &QApplication::aboutToQuit, this, [=]() mutable {
+        WlanRegisterNotification(hClient, WLAN_NOTIFICATION_SOURCE_NONE, TRUE, NULL, NULL, NULL, &dwPrevNotif);
+        WlanCloseHandle(hClient, NULL);
+        qDebug() << "WlanCloseHandle";
+    });
 }
 
 void Widget::closeEvent(QCloseEvent* event)

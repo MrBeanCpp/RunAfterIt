@@ -24,7 +24,7 @@ private:
     QIcon defaultIcon;
 
 signals:
-    void pathChanged(void);
+    void pathChanged(QString newPath);
 
     // QWidget interface
 protected:

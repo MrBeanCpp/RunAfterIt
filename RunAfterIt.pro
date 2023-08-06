@@ -2,7 +2,7 @@ QT       += core gui
 QT       += concurrent
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -20,12 +20,14 @@ SOURCES += \
     iteminfo.cpp \
     lineedit.cpp \
     main.cpp \
+    util.cpp \
     widget.cpp
 
 HEADERS += \
     item.h \
     iteminfo.h \
     lineedit.h \
+    util.h \
     widget.h
 
 FORMS += \
@@ -47,4 +49,4 @@ msvc {
     QMAKE_CXXFLAGS += /utf-8
 }
 
-LIBS += -luser32
+LIBS += -luser32 -lWinmm -lole32 -lwlanapi -lIphlpapi

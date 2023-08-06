@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QFileIconProvider>
+#include <wlanapi.h>
 QT_BEGIN_NAMESPACE
 namespace Ui { class Widget; }
 QT_END_NAMESPACE
@@ -34,14 +35,15 @@ public:
     void readIni(void);
     InfoList getInfoList(void);
     void updateList(void);
-    ProcessList enumProcess(void);
-    PathSet enumProcessPath(const ProcessList& pList);
-    PathSet enumProcessPath(void); //重载
-    QString queryProcessName(DWORD PID);
-    QString getFileName(const QString& path);
+    static ProcessList enumProcess(void);
+    static PathSet enumProcessPath(const ProcessList& pList);
+    static PathSet enumProcessPath(void); //重载
+    static QString queryProcessName(DWORD PID);
     void initSysTray(void);
     void setAutoRun(bool isAuto);
     bool isAutoRun(void);
+    static void WINAPI WLANCallback(PWLAN_NOTIFICATION_DATA wlanData, PVOID context);
+    void wlanStateRegister(WLAN_NOTIFICATION_CALLBACK funcCallback);
 
 private:
     Ui::Widget* ui;
@@ -53,6 +55,8 @@ private:
     const QString AppName = "RunAfterIt";
     const QString AppPath = QDir::toNativeSeparators(QApplication::applicationFilePath());
     QSystemTrayIcon* sysTray = nullptr;
+    static inline bool isWifiConnecting = false;
+    static inline QString wifiName;
 
     InfoList infoList;
 

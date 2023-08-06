@@ -178,6 +178,39 @@ color: rgb(241, 207, 207);</string>
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="btn_wifi">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>45</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>45</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">font: 16pt &quot;Consolas&quot;;
+color: rgb(241, 207, 207);</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="res.qrc">
+          <normaloff>:/Images/wifi_w.ico</normaloff>:/Images/wifi_w.ico</iconset>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -270,7 +303,7 @@ QPushButton:hover{
          <bool>false</bool>
         </property>
         <property name="dragDropMode">
-         <enum>QAbstractItemView::DragDrop</enum>
+         <enum>QAbstractItemView::DropOnly</enum>
         </property>
         <property name="defaultDropAction">
          <enum>Qt::MoveAction</enum>

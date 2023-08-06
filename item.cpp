@@ -7,19 +7,24 @@ Item::Item(QListWidgetItem* _widgetItem, QWidget* parent)
     ui->setupUi(this);
 
     connect(ui->check_used, &QCheckBox::toggled, this, &Item::contentChanged);
-    connect(ui->edit_target, &LineEdit::pathChanged, this, &Item::contentChanged);
+    connect(ui->edit_target, &LineEdit::pathChanged, this, [=](QString path){
+        bool isWifi = path.startsWith(ItemInfo::WIFI);
+        ui->btn_endWith->setEnabled(!isWifi); //wifi时禁用
+        ui->btn_loop->setEnabled(!isWifi);
+        emit contentChanged();
+    });
     connect(ui->edit_follow, &LineEdit::pathChanged, this, &Item::contentChanged);
     connect(ui->btn_endWith, &QToolButton::toggled, this, &Item::contentChanged);
     connect(ui->btn_loop, &QToolButton::toggled, this, &Item::contentChanged);
 
-    connect(ui->check_used, &QCheckBox::toggled, [=](bool checked) {
+    connect(ui->check_used, &QCheckBox::toggled, this, [=](bool checked) {
         ui->edit_target->setEnabled(checked);
         ui->edit_follow->setEnabled(checked);
         ui->btn_endWith->setEnabled(checked);
         ui->btn_loop->setEnabled(checked);
     });
 
-    connect(ui->btn_del, &QToolButton::clicked, [=]() {
+    connect(ui->btn_del, &QToolButton::clicked, this, [=]() {
         emit deleteButtonClicked(widgetItem);
     });
 }
@@ -36,6 +41,9 @@ void Item::setData(const ItemInfo& info)
     ui->edit_follow->setPath(info.follow);
     ui->btn_endWith->setChecked(info.isEndWith);
     ui->btn_loop->setChecked(info.isLoop);
+
+    ui->btn_endWith->setEnabled(!info.isWifi()); //wifi时禁用
+    ui->btn_loop->setEnabled(!info.isWifi());
 }
 
 ItemInfo Item::getData()

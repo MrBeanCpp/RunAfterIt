@@ -6,5 +6,7 @@
         <file>Images/del.png</file>
         <file>Images/connect_w.png</file>
         <file>Images/add.png</file>
+        <file>Images/wifi.ico</file>
+        <file>Images/wifi_w.ico</file>
     </qresource>
 </RCC>
