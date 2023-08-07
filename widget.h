@@ -55,7 +55,6 @@ private:
     const QString AppName = "RunAfterIt";
     const QString AppPath = QDir::toNativeSeparators(QApplication::applicationFilePath());
     QSystemTrayIcon* sysTray = nullptr;
-    static inline bool isWifiConnecting = false;
     static inline QString wifiName;
 
     InfoList infoList;

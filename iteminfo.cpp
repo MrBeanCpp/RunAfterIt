@@ -25,3 +25,8 @@ bool ItemInfo::isWifi() const
 {
     return target.startsWith(WIFI);
 }
+
+bool ItemInfo::isWifi(const QString& str)
+{
+    return str.startsWith(WIFI);
+}

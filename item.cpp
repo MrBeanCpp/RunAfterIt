@@ -8,9 +8,8 @@ Item::Item(QListWidgetItem* _widgetItem, QWidget* parent)
 
     connect(ui->check_used, &QCheckBox::toggled, this, &Item::contentChanged);
     connect(ui->edit_target, &LineEdit::pathChanged, this, [=](QString path){
-        bool isWifi = path.startsWith(ItemInfo::WIFI);
-        ui->btn_endWith->setEnabled(!isWifi); //wifi时禁用
-        ui->btn_loop->setEnabled(!isWifi);
+        bool isWifi = ItemInfo::isWifi(path);
+        ui->btn_endWith->setEnabled(!isWifi); //wifi时禁用 可以支持但没必要
         emit contentChanged();
     });
     connect(ui->edit_follow, &LineEdit::pathChanged, this, &Item::contentChanged);
@@ -41,9 +40,6 @@ void Item::setData(const ItemInfo& info)
     ui->edit_follow->setPath(info.follow);
     ui->btn_endWith->setChecked(info.isEndWith);
     ui->btn_loop->setChecked(info.isLoop);
-
-    ui->btn_endWith->setEnabled(!info.isWifi()); //wifi时禁用
-    ui->btn_loop->setEnabled(!info.isWifi());
 }
 
 ItemInfo Item::getData()

@@ -43,12 +43,13 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
         addItem();
     });
     connect(ui->btn_wifi, &QPushButton::clicked, this, [=]() {
-        addItem(ItemInfo(true, ItemInfo::WIFI + Util::getWifiName(), ""));
+        addItem(ItemInfo(true, ItemInfo::WIFI + wifiName, ""));
     });
 
     QTimer* timer = new QTimer(this);
     timer->callOnTimeout([=]() {
         static PathSet preSet;
+        static QString preWifi;
 
         QElapsedTimer t;
         t.start();
@@ -64,11 +65,10 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
                 qDebug() << "#Not Valid:" << Util::getFileName(info.target) << Util::getFileName(info.follow);
                 continue;
             }
-            if(info.isWifi() && !isWifiConnecting) continue; //WIFI是连接时生效一次
 
             //触发条件
             bool isTargetExist = info.isWifi() ? (info.target == (ItemInfo::WIFI + wifiName)) : pSet.contains(info.target);
-            bool isTargetExisted = preSet.contains(info.target);
+            bool isTargetExisted = info.isWifi() ? (preWifi == wifiName) : preSet.contains(info.target);
             bool isFollowExist = pSet.contains(info.follow);
             bool isTargetStart = !isTargetExisted && isTargetExist; //开启的瞬间 or 首次检测到存在(preSet.empty())
             bool isTargetEnd = isTargetExisted && !isTargetExist; //结束的瞬间
@@ -84,6 +84,9 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
 
                         Util::startProcess(info.follow);
                         qDebug() << "#Detect:" << target << "then #Run:" << follow;
+                        if(info.isWifi())
+                            sysTray->showMessage("Wifi Detected: " + wifiName, "Run: " + follow);
+
                         shouldLivePathList << info.follow; //当然启动也算应当存活
                         startedPathList << info.follow;
                     }
@@ -104,11 +107,12 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
                 qDebug() << "#Terminate:" << P.second << ret;
             }
 
-        isWifiConnecting = false; //clear state
+        preWifi = wifiName;
         preSet = pSet;
     });
     timer->start(2000);
 
+    wifiName = Util::getWifiName(); //启动时获取，运行时通过监听事件更新
     wlanStateRegister(WLANCallback);
     readFile(); //todo: 如果包含wifi 则注册事件
     readIni();
@@ -367,8 +371,7 @@ void Widget::WLANCallback(PWLAN_NOTIFICATION_DATA wlanData, PVOID context)
         QString wifiName = QString::fromUtf8((const char*)ssidValue, ssidLength);
 
         qDebug() << wifiName;
-        isWifiConnecting = true;
-        Widget::wifiName = wifiName;
+        Widget::wifiName = wifiName; //update
     }
 }
 
