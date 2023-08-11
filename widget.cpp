@@ -114,7 +114,7 @@ Widget::Widget(QWidget* parent) //增加禁用按钮 & 是否持续监测（or �
 
     wifiName = Util::getWifiName(); //启动时获取，运行时通过监听事件更新
     wlanStateRegister(WLANCallback);
-    readFile(); //todo: 如果包含wifi 则注册事件
+    readFile();
     readIni();
     sysTray->showMessage("Message", "RunAfterIt Started");
 }
@@ -361,17 +361,19 @@ void Widget::WLANCallback(PWLAN_NOTIFICATION_DATA wlanData, PVOID context)
     Q_UNUSED(context)
     if (wlanData->NotificationCode == wlan_notification_acm_connection_complete) { //包括连接与断开
         PWLAN_CONNECTION_NOTIFICATION_DATA connData = (PWLAN_CONNECTION_NOTIFICATION_DATA)wlanData->pData;
-        if (connData->wlanReasonCode != WLAN_REASON_CODE_SUCCESS) return; //区分连接与断开
-
-        qDebug() << "Connected";
-
         PDOT11_SSID ssid = &(connData->dot11Ssid); // 转换SSID指针为SSID结构
         ULONG ssidLength = ssid->uSSIDLength;
         UCHAR* ssidValue = ssid->ucSSID;
         QString wifiName = QString::fromUtf8((const char*)ssidValue, ssidLength);
 
-        qDebug() << wifiName;
-        Widget::wifiName = wifiName; //update
+        if (connData->wlanReasonCode == WLAN_REASON_CODE_SUCCESS) { //区分连接与断开
+            qDebug() << "Connected:" << wifiName;
+            Widget::wifiName = wifiName; //update
+        }else {
+            qDebug() << "DisConnected:" << wifiName;
+            Widget::wifiName = ""; //否则不会检测到WifiChange
+        }
+
     }
 }
 

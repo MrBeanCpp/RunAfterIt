@@ -9,7 +9,7 @@
 #include <QDirModel>
 #include <QTimer>
 #include "iteminfo.h"
-LineEdit::LineEdit(QWidget* parent) //ui->setupUi(this)会setText(QString()) 所以在构造函数中setText无效
+LineEdit::LineEdit(QWidget* parent) //ui->setupUi(this)中调用的retranslateUi(Item)中会setText(QString()) 所以在构造函数中setText无效
     : QLineEdit(parent)
 {
     setCompleter(new QCompleter(new QDirModel(this), this));
